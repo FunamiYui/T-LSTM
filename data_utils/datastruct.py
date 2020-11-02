@@ -5,14 +5,15 @@ import numpy as np
 
 class DataStruct:
 
-    def __init__(self, sentence, adj, trigger, trigger_index, eep, index,sentence_emb=None):
+    def __init__(self, sentence, adj, trigger, trigger_index, eep, index, sentence_emb=None, trigger_emb=None):
         self.sentence = sentence
         self.adj = adj
         self.trigger = trigger
         self.trigger_index = trigger_index
         self.eep = eep
         self.index = index
-        self.sentence_emb=sentence_emb
+        self.sentence_emb = sentence_emb
+        self.trigger_emb = trigger_emb
 
     def normalize(self, mx):
         """Row-normalize sparse matrix"""
