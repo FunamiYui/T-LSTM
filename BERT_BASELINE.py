@@ -1,3 +1,6 @@
+import sys
+sys.path.append('./data_utils')
+
 import os
 
 from scipy.stats import pearsonr
@@ -7,7 +10,6 @@ from torch.utils.data import DataLoader
 import torch
 import torch.optim as optim
 import torch.nn.functional as F
-from tqdm import trange
 
 from data_utils import DataLoaderBert
 from Model import BaselineBert
@@ -23,7 +25,7 @@ def get_pad_mask(seq, pad_idx):
 
 def trainer_train(epochs):
     best_r = 0.0
-    for epoch in trange(epochs):
+    for epoch in range(epochs):
         model.train()
         temp_loss = 0.0
         count = 0
@@ -87,7 +89,7 @@ def trainer_dev(epoch):
 def trainer_test(epochs):
     model.eval()
     loss_list = 0.0
-    for epoch in trange(epochs):
+    for epoch in range(epochs):
         temp_loss = 0.0
         count = 0
         eval_history_out = []
@@ -115,14 +117,13 @@ def trainer_test(epochs):
 if __name__ == '__main__':
     torch.cuda.empty_cache()
     os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "2"
     torch.cuda.manual_seed_all(0)
 
-    torch.cuda.set_device(0)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # writer = SummaryWriter('./tensorboard/baseline/meantime')
 
-    epoch = 300
+    epoch = 500
     train_batch_size = 32
     dev_batch_size = 128
     test_batch_size = 128
@@ -152,14 +153,17 @@ if __name__ == '__main__':
     model_path = "./checkpoint/baseline_meantime.pt"
     model = BaselineBert()
     model.to(device)
-    optimizer = optim.Adam(model.parameters(), weight_decay=5e-4)
+    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
 
     print("Start training...")
     trainer_train(epoch)
 
     print("Start testing...")
+    test_loss, test_r, test_mae = trainer_test(1)
+    print("test_loss: ", test_loss, "test_r: ", test_r, "test_mae: ", test_mae)
+
     checkpoint = torch.load(model_path)
-    model.load_state_dict = (checkpoint['model_state_dict'])
+    model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     print(checkpoint['epoch'], checkpoint['correlation'])
 

@@ -1,9 +1,12 @@
+import sys
+sys.path.append('..')
+
 from torch.utils.data import Dataset, DataLoader
 import torch
 import torch.nn.functional as F
 from tqdm import trange
 import numpy as np
-from data_utils import LoadData
+from load_data import LoadData
 from transformers import BertTokenizer, BertModel
 from Model import BaselineBert
 
@@ -24,8 +27,8 @@ class DataLoaderBert(Dataset):
         a = loaddata.conllu_counter[dataset]
         counter = loaddata.counter_process(a)
 
-        tokenizer = BertTokenizer.from_pretrained('./bert-base-uncased')
-        model = BertModel.from_pretrained("./bert-base-uncased")
+        tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+        model = BertModel.from_pretrained("bert-base-uncased")
         for i in trange(len(counter)):
             assert len(counter[i].trigger) == 1, "not one trigger per sentence"
             ids = torch.tensor(tokenizer.encode(counter[i].sentence)).unsqueeze(0)  # [batch, seq_len]
