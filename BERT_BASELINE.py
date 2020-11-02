@@ -9,7 +9,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from tqdm import trange
 
-from data_utils.data_loader_bert import DataLoaderBert
+from data_utils import DataLoaderBert
 from Model import BaselineBert
 
 

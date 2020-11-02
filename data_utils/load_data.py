@@ -1,19 +1,15 @@
-import json
-
-from conllu import parse_incr
 from collections import defaultdict, Counter
 import pandas as pd
 from tqdm import trange
 import numpy as np
-import spacy
 import torch
-from torchtext import data, datasets
-from torchtext.vocab import Vectors
+from torchtext import data
 from torch.nn import init
-from torchtext.data import Example, Iterator
+from torchtext.data import Example
 from data_utils.datastruct import DataStruct
 
-#meantime and uw torchtext glove
+
+# meantime and uw torchtext glove
 class LoadData:
     """ """
 
@@ -103,6 +99,7 @@ class LoadData:
         return total
 
     def counter_process(self, text):
+        # IMPORTANT
         total = []
         temp_line_trigger = []
         temp_line_trigger_index = []
@@ -113,6 +110,7 @@ class LoadData:
         for i in trange(len(text)):
             line = text.loc[i]
             if line['index'] == 0 and len(temp_line) != 0:
+                # end of a sentence
                 for j in range(len(temp_line_trigger)):
                     adj = torch.sparse_coo_tensor(torch.cat((torch.tensor(temp_line_edgei.copy()).unsqueeze(0),
                                                              torch.tensor(temp_line_edgej.copy(),dtype=torch.float).unsqueeze(0)), 0),
@@ -141,7 +139,7 @@ class LoadData:
             if line['eep'] != '_' and line['eep'] != 'nan':
                 if -3 <= float(line['eep']) <= 3:
                     temp_line_trigger.append(line['token'].lower())
-                    temp_line_trigger_index.append(float(line['index']))
+                    temp_line_trigger_index.append(int(line['index']))
                     temp_line_eep.append(float(line['eep']))
 
             if line['head'] >= 0:
