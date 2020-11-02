@@ -70,6 +70,7 @@ optimizer = optim.Adam(model.parameters(), weight_decay=5e-4)
 def trainer_train(epochs):
     best_r = 0.0
     for epoch in trange(epochs):
+        model.train()
         temp_loss = 0.0
         count = 0
 
@@ -130,6 +131,7 @@ def trainer_dev(epoch):
 
 
 def trainer_test(epochs):
+    model.eval()
     loss_list = 0.0
     for epoch in trange(epochs):
         temp_loss = 0.0
@@ -172,14 +174,12 @@ if resume:
 
 
 if __name__ == '__main__':
-    # model.train()
-    # trainer_train(epoch)
+    trainer_train(epoch)
 
     checkpoint = torch.load(model_path)
     model.load_state_dict = (checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     print(checkpoint['epoch'], checkpoint['correlation'])
 
-    model.eval()
     test_loss, test_r, test_mae = trainer_test(1)
     print("test_loss: ", test_loss, "test_r: ", test_r, "test_mae: ", test_mae)
