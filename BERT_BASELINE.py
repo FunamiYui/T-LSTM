@@ -12,18 +12,6 @@ from tqdm import trange
 from data_utils.data_loader_bert import DataLoaderBert
 from Model import BaselineBert
 
-torch.cuda.empty_cache()
-os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-# torch.manual_seed(0)
-# torch.cuda.manual_seed_all(0)
-
-# torch.backends.cudnn.deterministic = True
-
-torch.cuda.set_device(0)
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# writer = SummaryWriter('./tensorboard/baseline/meantime')
-
 
 def tokenizer(text):
     return [tok for tok in text]
@@ -31,40 +19,6 @@ def tokenizer(text):
 
 def get_pad_mask(seq, pad_idx):
     return (seq != pad_idx).unsqueeze(-2)
-
-
-resume = 0
-start_epoch = 0
-epoch = 300
-train_batch_size = 32
-dev_batch_size = 128
-test_batch_size = 128
-
-train_dataset = DataLoaderBert("./unified/meantime/train.conll", "./unified/meantime/dev.conll",
-                  "./unified/meantime/test.conll", 'train')
-'''
-dev_dataset = DataLoaderBert("./unified/meantime/train.conll", "./unified/meantime/dev.conll",
-                "./unified/meantime/test.conll", 'dev')
-'''
-test_dataset = DataLoaderBert("./unified/meantime/train.conll", "./unified/meantime/dev.conll",
-                 "./unified/meantime/test.conll", 'test')
-
-train_iter = DataLoader(dataset=train_dataset,
-                        batch_size=train_batch_size,
-                        shuffle=True)
-'''
-dev_iter = DataLoader(dataset=dev_dataset,
-                      batch_size=dev_batch_size,
-                      shuffle=True, drop_last=True)
-'''
-test_iter = DataLoader(dataset=test_dataset,
-                       batch_size=test_batch_size,
-                       shuffle=False, drop_last=True)
-
-model_path = "./checkpoint/baseline_meantime.pt"
-model = BaselineBert()
-model.to(device)
-optimizer = optim.Adam(model.parameters(), weight_decay=5e-4)
 
 
 def trainer_train(epochs):
@@ -158,24 +112,52 @@ def trainer_test(epochs):
         return loss_list / epochs, r, mae
 
 
-if resume:
-    # resume为参数，第一次训练时设为0，中断再训练时设为1
-    model_path = os.path.join('/media/user1/325655435655094D/baseline/checkpoint/uds',
-                              'lstm1.pth.tar')
-    assert os.path.isfile(model_path)
-    # model.load_state_dict(torch.load(model_path))
-    checkpoint = torch.load(model_path)
-    best_acc = checkpoint['loss']
-    start_epoch = checkpoint['epoch']
-    model.load_state_dict(checkpoint['model_state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    print('Load checkpoint at epoch {}.'.format(start_epoch))
-    print('Best accuracy so far {}.'.format(best_acc))
-
-
 if __name__ == '__main__':
+    torch.cuda.empty_cache()
+    os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    torch.cuda.manual_seed_all(0)
+
+    torch.cuda.set_device(0)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # writer = SummaryWriter('./tensorboard/baseline/meantime')
+
+    epoch = 300
+    train_batch_size = 32
+    dev_batch_size = 128
+    test_batch_size = 128
+
+    print("Prepare data...")
+    train_dataset = DataLoaderBert("./unified/meantime/train.conll", "./unified/meantime/dev.conll",
+                                   "./unified/meantime/test.conll", 'train')
+    '''
+    dev_dataset = DataLoaderBert("./unified/meantime/train.conll", "./unified/meantime/dev.conll",
+                    "./unified/meantime/test.conll", 'dev')
+    '''
+    test_dataset = DataLoaderBert("./unified/meantime/train.conll", "./unified/meantime/dev.conll",
+                                  "./unified/meantime/test.conll", 'test')
+
+    train_iter = DataLoader(dataset=train_dataset,
+                            batch_size=train_batch_size,
+                            shuffle=True)
+    '''
+    dev_iter = DataLoader(dataset=dev_dataset,
+                          batch_size=dev_batch_size,
+                          shuffle=True, drop_last=True)
+    '''
+    test_iter = DataLoader(dataset=test_dataset,
+                           batch_size=test_batch_size,
+                           shuffle=False, drop_last=True)
+
+    model_path = "./checkpoint/baseline_meantime.pt"
+    model = BaselineBert()
+    model.to(device)
+    optimizer = optim.Adam(model.parameters(), weight_decay=5e-4)
+
+    print("Start training...")
     trainer_train(epoch)
 
+    print("Start testing...")
     checkpoint = torch.load(model_path)
     model.load_state_dict = (checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
