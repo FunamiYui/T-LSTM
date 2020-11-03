@@ -30,7 +30,7 @@ def trainer_train(epochs):
         temp_loss = 0.0
         count = 0
 
-        for trigger_emb, eep in train_iter:
+        for trigger_emb, eep, _, _ in train_iter:
             trigger_emb = trigger_emb.to(device)
             eep = eep.squeeze().to(device)
 
@@ -48,7 +48,7 @@ def trainer_train(epochs):
 
         print('[epoch %d, %d] loss: %f' % (epoch, count, temp_loss / count))
 
-        _, test_r, _ = trainer_test(1)
+        _, test_r, _ = trainer_test()
         if test_r[0] > best_r:
             best_r = test_r[0]
             torch.save({
@@ -86,7 +86,9 @@ def trainer_dev(epoch):
 '''
 
 
-def trainer_test(epochs):
+def trainer_test(epochs=1, wr=False):
+    f = open(filename, 'w')
+
     model.eval()
     loss_list = 0.0
     for epoch in range(epochs):
@@ -95,7 +97,7 @@ def trainer_test(epochs):
         eval_history_out = []
         eval_history_label = []
 
-        for trigger_emb, eep in test_iter:
+        for trigger_emb, eep, trigger_index, trigger in test_iter:
             trigger_emb = trigger_emb.to(device)
             eep = eep.squeeze().to(device)
 
@@ -108,9 +110,22 @@ def trainer_test(epochs):
             eval_history_out = eval_history_out + out.cpu().detach().numpy().tolist()
             eval_history_label = eval_history_label + eep.cpu().detach().numpy().tolist()
 
+            if wr:
+                batch = eep.shape[0]
+                for i in range(batch):
+                    # trigger_index, trigger, truth, prediction
+                    line = str(trigger_index[i].item()) + "\t" + trigger[i] + "\t" + str(eep[i].item()) + "\t" + str(out[i].item()) + "\n"
+                    f.write(line)
+
         loss_list += temp_loss / count
         r = pearsonr(eval_history_out, eval_history_label)
         mae = mean_absolute_error(eval_history_out, eval_history_label)
+
+        if wr:
+            f.write("test_loss: " + str(loss_list / epochs) + "\n")
+            f.write("test_r: " + str(r[0]) + "\n")
+            f.write("test_mae: " + str(mae) + "\n")
+        f.close()
         return loss_list / epochs, r, mae
 
 
@@ -120,23 +135,23 @@ if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"] = "2"
     torch.cuda.manual_seed_all(0)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda")
     # writer = SummaryWriter('./tensorboard/baseline/meantime')
 
     epoch = 500
     train_batch_size = 32
     dev_batch_size = 128
-    test_batch_size = 128
+    test_batch_size = 64
 
     print("Prepare data...")
-    train_dataset = DataLoaderBert("./unified/meantime/train.conll", "./unified/meantime/dev.conll",
-                                   "./unified/meantime/test.conll", 'train')
+    train_dataset = DataLoaderBert("./unified/train.conll", "./unified/dev.conll",
+                                   "./unified/test.conll", 'train')
     '''
     dev_dataset = DataLoaderBert("./unified/meantime/train.conll", "./unified/meantime/dev.conll",
                     "./unified/meantime/test.conll", 'dev')
     '''
-    test_dataset = DataLoaderBert("./unified/meantime/train.conll", "./unified/meantime/dev.conll",
-                                  "./unified/meantime/test.conll", 'test')
+    test_dataset = DataLoaderBert("./unified/train.conll", "./unified/dev.conll",
+                                  "./unified/test.conll", 'test')
 
     train_iter = DataLoader(dataset=train_dataset,
                             batch_size=train_batch_size,
@@ -146,11 +161,13 @@ if __name__ == '__main__':
                           batch_size=dev_batch_size,
                           shuffle=True, drop_last=True)
     '''
+
     test_iter = DataLoader(dataset=test_dataset,
                            batch_size=test_batch_size,
-                           shuffle=False, drop_last=True)
+                           shuffle=False, drop_last=False)
 
-    model_path = "./checkpoint/baseline_meantime.pt"
+    filename = "./record/baseline_uw.txt"
+    model_path = "./checkpoint/baseline_uw.pt"
     model = BaselineBert()
     model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
@@ -159,7 +176,7 @@ if __name__ == '__main__':
     trainer_train(epoch)
 
     print("Start testing...")
-    test_loss, test_r, test_mae = trainer_test(1)
+    test_loss, test_r, test_mae = trainer_test()
     print("test_loss: ", test_loss, "test_r: ", test_r, "test_mae: ", test_mae)
 
     checkpoint = torch.load(model_path)
@@ -167,5 +184,5 @@ if __name__ == '__main__':
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     print(checkpoint['epoch'], checkpoint['correlation'])
 
-    test_loss, test_r, test_mae = trainer_test(1)
+    test_loss, test_r, test_mae = trainer_test(wr=True)
     print("test_loss: ", test_loss, "test_r: ", test_r, "test_mae: ", test_mae)

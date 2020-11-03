@@ -47,7 +47,7 @@ class DataLoaderBert(Dataset):
         return self.data[index].sentence, self.data[index].sentence_emb, self.data[index].index, torch.tensor(
             self.data[index].trigger_index,dtype=torch.long), torch.tensor(self.data[index].eep)
         '''
-        return self.data[index].trigger_emb, torch.tensor(self.data[index].eep)
+        return self.data[index].trigger_emb, torch.tensor(self.data[index].eep), self.data[index].trigger_index[0], self.data[index].trigger[0]
 
     def __len__(self):
         return self.len
