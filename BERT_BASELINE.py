@@ -136,7 +136,7 @@ if __name__ == '__main__':
     torch.cuda.manual_seed_all(0)
 
     device = torch.device("cuda")
-    # writer = SummaryWriter('./tensorboard/baseline/meantime')
+    # writer = SummaryWriter('./tensorboard/baseline/factbank_v1')
 
     epoch = 500
     train_batch_size = 32
@@ -144,14 +144,14 @@ if __name__ == '__main__':
     test_batch_size = 64
 
     print("Prepare data...")
-    train_dataset = DataLoaderBert("./unified/train.conll", "./unified/dev.conll",
-                                   "./unified/test.conll", 'train')
+    train_dataset = DataLoaderBert("./unified/factbank_v1/train.conll", "./unified/factbank_v1/dev.conll",
+                                   "./unified/factbank_v1/test.conll", 'train')
     '''
-    dev_dataset = DataLoaderBert("./unified/meantime/train.conll", "./unified/meantime/dev.conll",
-                    "./unified/meantime/test.conll", 'dev')
+    dev_dataset = DataLoaderBert("./unified/factbank_v1/train.conll", "./unified/factbank_v1/dev.conll",
+                    "./unified/factbank_v1/test.conll", 'dev')
     '''
-    test_dataset = DataLoaderBert("./unified/train.conll", "./unified/dev.conll",
-                                  "./unified/test.conll", 'test')
+    test_dataset = DataLoaderBert("./unified/factbank_v1/train.conll", "./unified/factbank_v1/dev.conll",
+                                  "./unified/factbank_v1/test.conll", 'test')
 
     train_iter = DataLoader(dataset=train_dataset,
                             batch_size=train_batch_size,
@@ -166,8 +166,8 @@ if __name__ == '__main__':
                            batch_size=test_batch_size,
                            shuffle=False, drop_last=False)
 
-    filename = "./record/baseline_uw.txt"
-    model_path = "./checkpoint/baseline_uw.pt"
+    filename = "./record/baseline_factbank_v12.txt"
+    model_path = "./checkpoint/baseline_factbank_v12.pt"
     model = BaselineBert()
     model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)

@@ -29,9 +29,14 @@ class DataLoaderBert(Dataset):
 
         tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         model = BertModel.from_pretrained("bert-base-uncased")
+        model.cuda()
+
+        model.eval()
+
         for i in trange(len(counter)):
             assert len(counter[i].trigger) == 1, "not one trigger per sentence"
-            ids = torch.tensor(tokenizer.encode(counter[i].sentence)).unsqueeze(0)  # [batch, seq_len]
+            ids = torch.tensor(tokenizer.encode(counter[i].sentence)).unsqueeze(0).cuda()  # [batch, seq_len]
+            
             with torch.no_grad():
                 h = model(ids)[0][:, 1:-1, :].squeeze(0)
                 counter[i].trigger_emb = h[counter[i].trigger_index[0]]
