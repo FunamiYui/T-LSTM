@@ -12,7 +12,7 @@ class ScaledDotProductAttention(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, q, k, v, mask=None):
-        attn = torch.matmul(q, k.transpose(2, 3))
+        attn = torch.matmul(q, k.transpose(-1, -2))  # [batch, head, seq_len, seq_len]
 
         if mask is not None:
             attn = attn.masked_fill(mask == 0, -1e9)

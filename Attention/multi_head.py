@@ -1,5 +1,7 @@
+import torch
 import torch.nn as nn
-from .single import ScaledDotProductAttention
+import torch.nn.functional as F
+from single import ScaledDotProductAttention
 
 
 class MultiHeadedAttention(nn.Module):
@@ -7,7 +9,7 @@ class MultiHeadedAttention(nn.Module):
     Take in model size and number of heads.
     """
 
-    def __init__(self, h, d_in,d_out, dropout=0.3):
+    def __init__(self, h, d_in, d_out, dropout=0.3):
         super().__init__()
         assert d_out % h == 0
 
@@ -22,16 +24,29 @@ class MultiHeadedAttention(nn.Module):
         self.dropout = dropout
 
     def forward(self, query, key, value, mask=None):
-        batch_size = query.size(0)
+        batch = query.size(0)
 
         # 1) Do all the linear projections in batch from d_model => h x d_k
-        query, key, value = [l(x).view(x.shape[0], -1, self.h, self.d_k).transpose(1, 2)
+        query, key, value = [l(x).view(batch, -1, self.h, self.d_k).transpose(1, 2)
                              for l, x in zip(self.linear_layers, (query, key, value))]
+        # q, k, v: [batch, head, seq_len, embed_dim]
 
         # 2) Apply attention on all the projected vectors in batch.
-        x, attn = self.attention(query, key, value, mask=mask.unsqueeze(-2))  #for head axis
+        x, attn = self.attention(query, key, value, mask=mask)  # for head axis
 
         # 3) "Concat" using a view and apply a final linear.
-        x = x.transpose(1, 2).contiguous().view(batch_size, -1, self.h * self.d_k)
+        x = x.transpose(1, 2).contiguous().view(batch, -1, self.h * self.d_k)
 
         return self.output_linear(x)
+
+
+if __name__ == "__main__":
+    batch = 2
+    seq_len = 3
+    at_size = 10
+    model = MultiHeadedAttention(1, at_size, at_size, 0.1)
+
+    x = torch.randn([batch, seq_len, at_size])
+    trigger_x = x[:, 1, :]
+    # mask = torch.ones([batch, seq_len])
+    x = model(trigger_x, x, x)

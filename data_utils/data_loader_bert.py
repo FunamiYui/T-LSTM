@@ -8,7 +8,7 @@ from tqdm import trange
 import numpy as np
 from load_data import LoadData
 from transformers import BertTokenizer, BertModel
-from Model import BaselineBert
+# from Model import BaselineBert
 
 
 class DataLoaderBert(Dataset):
@@ -33,15 +33,28 @@ class DataLoaderBert(Dataset):
 
         model.eval()
 
+        max_len = 0
+        for i in range(len(counter)):
+            if len(counter[i].sentence) > max_len:
+                max_len = len(counter[i].sentence)
+        print("max_len", max_len)
+
         for i in trange(len(counter)):
             assert len(counter[i].trigger) == 1, "not one trigger per sentence"
-            ids = torch.tensor(tokenizer.encode(counter[i].sentence)).unsqueeze(0).cuda()  # [batch, seq_len]
+            ids = torch.tensor(tokenizer.encode(counter[i].sentence)).unsqueeze(0).cuda()  # [batch=1, seq_len]
             
             with torch.no_grad():
-                h = model(ids)[0][:, 1:-1, :].squeeze(0)
-                counter[i].trigger_emb = h[counter[i].trigger_index[0]]
-                # counter[i].sentence_emb = tuple(model(ids)[0][:, 1:-1, :].squeeze(0).numpy())  # tuple(array)
-                # assert len(counter[i].sentence_emb) == len(counter[i].sentence), "after emb"
+                h = model(ids)[0][:, 1:-1, :].squeeze(0).cpu()  # [seq_len, bert_dim]
+                # counter[i].trigger_emb = h[counter[i].trigger_index[0]]  # [bert_dim]
+                seq_len, bert_dim = h.shape
+                assert seq_len == len(counter[i].sentence), "after emb"
+                counter[i].sentence_emb = torch.zeros([max_len, bert_dim])
+                counter[i].sentence_emb[:seq_len] = h
+
+                counter[i].mask = torch.zeros(max_len)
+                counter[i].mask[:seq_len] = torch.ones(seq_len)
+
+                counter[i].adj_matrix = counter[i].trans_data(max_len)
             counter[i].index = i
         self.data = counter
         self.len = len(self.data)
@@ -52,10 +65,14 @@ class DataLoaderBert(Dataset):
         return self.data[index].sentence, self.data[index].sentence_emb, self.data[index].index, torch.tensor(
             self.data[index].trigger_index,dtype=torch.long), torch.tensor(self.data[index].eep)
         '''
-        return self.data[index].trigger_emb, torch.tensor(self.data[index].eep), self.data[index].trigger_index[0], self.data[index].trigger[0]
+        return self.data[index].sentence_emb, self.data[index].mask, self.data[index].adj_matrix, \
+               torch.tensor(self.data[index].eep[0]), torch.tensor(self.data[index].trigger_index[0],
+                                                                   dtype=torch.long), \
+               self.data[index].trigger[0]
 
     def __len__(self):
         return self.len
+
 
 if __name__ == "__main__":
     train_dataset = DataLoaderBert("../unified/meantime/train.conll", "../unified/meantime/dev.conll",
@@ -65,9 +82,15 @@ if __name__ == "__main__":
                             batch_size=32,
                             shuffle=False)
 
-    model = BaselineBert()
-    for trigger_emb, eep in train_iter:
-        assert trigger_emb.shape[1] == 768, "BERT hidden dim wrong"
-        out = model(trigger_emb)
-        accu = F.l1_loss(out, eep)
-        print(accu)
+    # model = BaselineBert()
+    for sentence_emb, mask, adj_matrix, eep, trigger_index, trigger in train_iter:
+        print(sentence_emb.shape)
+        print(mask.shape)
+        print(adj_matrix.shape)
+        print(eep.shape)
+        print(trigger_index.shape)
+        print(trigger.shape)
+        # assert trigger_emb.shape[1] == 768, "BERT hidden dim wrong"
+        # out = model(trigger_emb)
+        # accu = F.l1_loss(out, eep)
+        # print(accu)

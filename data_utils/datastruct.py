@@ -5,7 +5,9 @@ import numpy as np
 
 class DataStruct:
 
-    def __init__(self, sentence, adj, trigger, trigger_index, eep, index, sentence_emb=None, trigger_emb=None):
+    def __init__(self, sentence, adj, trigger, trigger_index, eep, index, sentence_emb=None, mask=None,
+                 adj_matrix=None,
+                 trigger_emb=None):
         self.sentence = sentence
         self.adj = adj
         self.trigger = trigger
@@ -13,6 +15,8 @@ class DataStruct:
         self.eep = eep
         self.index = index
         self.sentence_emb = sentence_emb
+        self.mask = mask
+        self.adj_matrix = adj_matrix
         self.trigger_emb = trigger_emb
 
     def normalize(self, mx):

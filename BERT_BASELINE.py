@@ -12,7 +12,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from data_utils import DataLoaderBert
-from Model import BaselineBert
+from Model import BaselineBert, GraphBaseline
 
 
 def tokenizer(text):
@@ -30,14 +30,16 @@ def trainer_train(epochs):
         temp_loss = 0.0
         count = 0
 
-        for trigger_emb, eep, _, _ in train_iter:
-            trigger_emb = trigger_emb.to(device)
-            eep = eep.squeeze().to(device)
+        for sentence_emb, mask, adj_matrix, eep, trigger_index, trigger in train_iter:
+            sentence_emb = sentence_emb.to(device)  # [batch, seq_len, bert_dim]
+            mask = mask.to(device)  # [batch, seq_len]
+            adj_matrix = adj_matrix.to(device).to_dense()  # [batch, seq_len, seq_len]
+            eep = eep.to(device)  # [batch]
+            trigger_index = trigger_index.to(device)  # [batch]
 
             optimizer.zero_grad()
 
-            assert trigger_emb.shape[1] == 768, "BERT hidden dim wrong"
-            out = model(trigger_emb)
+            out = model(sentence_emb, adj_matrix, trigger_index)
 
             loss = F.smooth_l1_loss(out, eep)
             loss.backward()
@@ -97,11 +99,14 @@ def trainer_test(epochs=1, wr=False):
         eval_history_out = []
         eval_history_label = []
 
-        for trigger_emb, eep, trigger_index, trigger in test_iter:
-            trigger_emb = trigger_emb.to(device)
-            eep = eep.squeeze().to(device)
+        for sentence_emb, mask, adj_matrix, eep, trigger_index, trigger in train_iter:
+            sentence_emb = sentence_emb.to(device)  # [batch, seq_len, bert_dim]
+            mask = mask.to(device)  # [batch, seq_len]
+            adj_matrix = adj_matrix.to(device).to_dense()  # [batch, seq_len, seq_len]
+            eep = eep.to(device)  # [batch]
+            trigger_index = trigger_index.to(device)  # [batch]
 
-            out = model(trigger_emb)
+            out = model(sentence_emb, adj_matrix, trigger)
 
             loss = F.smooth_l1_loss(out, eep)
             temp_loss += loss.item()
@@ -136,7 +141,7 @@ if __name__ == '__main__':
     torch.cuda.manual_seed_all(0)
 
     device = torch.device("cuda")
-    # writer = SummaryWriter('./tensorboard/baseline/factbank_v1')
+    # writer = SummaryWriter('./tensorboard/baseline/meantime')
 
     epoch = 500
     train_batch_size = 32
@@ -144,14 +149,14 @@ if __name__ == '__main__':
     test_batch_size = 64
 
     print("Prepare data...")
-    train_dataset = DataLoaderBert("./unified/factbank_v1/train.conll", "./unified/factbank_v1/dev.conll",
-                                   "./unified/factbank_v1/test.conll", 'train')
+    train_dataset = DataLoaderBert("./unified/meantime/train.conll", "./unified/meantime/dev.conll",
+                                   "./unified/meantime/test.conll", 'train')
     '''
-    dev_dataset = DataLoaderBert("./unified/factbank_v1/train.conll", "./unified/factbank_v1/dev.conll",
-                    "./unified/factbank_v1/test.conll", 'dev')
+    dev_dataset = DataLoaderBert("./unified/meantime/train.conll", "./unified/meantime/dev.conll",
+                    "./unified/meantime/test.conll", 'dev')
     '''
-    test_dataset = DataLoaderBert("./unified/factbank_v1/train.conll", "./unified/factbank_v1/dev.conll",
-                                  "./unified/factbank_v1/test.conll", 'test')
+    test_dataset = DataLoaderBert("./unified/meantime/train.conll", "./unified/meantime/dev.conll",
+                                  "./unified/meantime/test.conll", 'test')
 
     train_iter = DataLoader(dataset=train_dataset,
                             batch_size=train_batch_size,
@@ -166,9 +171,9 @@ if __name__ == '__main__':
                            batch_size=test_batch_size,
                            shuffle=False, drop_last=False)
 
-    filename = "./record/baseline_factbank_v12.txt"
-    model_path = "./checkpoint/baseline_factbank_v12.pt"
-    model = BaselineBert()
+    filename = "./record/baseline_meantime.txt"
+    model_path = "./checkpoint/baseline_meantime.pt"
+    model = GraphBaseline()
     model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
 
@@ -177,7 +182,7 @@ if __name__ == '__main__':
 
     print("Start testing...")
     test_loss, test_r, test_mae = trainer_test()
-    print("test_loss: ", test_loss, "test_r: ", test_r, "test_mae: ", test_mae)
+    print("test_loss:", test_loss, "test_r:", test_r, "test_mae:", test_mae)
 
     checkpoint = torch.load(model_path)
     model.load_state_dict(checkpoint['model_state_dict'])
@@ -185,4 +190,4 @@ if __name__ == '__main__':
     print(checkpoint['epoch'], checkpoint['correlation'])
 
     test_loss, test_r, test_mae = trainer_test(wr=True)
-    print("test_loss: ", test_loss, "test_r: ", test_r, "test_mae: ", test_mae)
+    print("test_loss:", test_loss, "test_r:", test_r, "test_mae:", test_mae)
