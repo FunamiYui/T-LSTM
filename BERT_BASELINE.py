@@ -99,14 +99,14 @@ def trainer_test(epochs=1, wr=False):
         eval_history_out = []
         eval_history_label = []
 
-        for sentence_emb, mask, adj_matrix, eep, trigger_index, trigger in train_iter:
+        for sentence_emb, mask, adj_matrix, eep, trigger_index, trigger in test_iter:
             sentence_emb = sentence_emb.to(device)  # [batch, seq_len, bert_dim]
             mask = mask.to(device)  # [batch, seq_len]
             adj_matrix = adj_matrix.to(device).to_dense()  # [batch, seq_len, seq_len]
             eep = eep.to(device)  # [batch]
             trigger_index = trigger_index.to(device)  # [batch]
 
-            out = model(sentence_emb, adj_matrix, trigger)
+            out = model(sentence_emb, adj_matrix, trigger_index)
 
             loss = F.smooth_l1_loss(out, eep)
             temp_loss += loss.item()
@@ -137,11 +137,11 @@ def trainer_test(epochs=1, wr=False):
 if __name__ == '__main__':
     torch.cuda.empty_cache()
     os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+    # os.environ["CUDA_VISIBLE_DEVICES"] = "2"
     torch.cuda.manual_seed_all(0)
 
     device = torch.device("cuda")
-    # writer = SummaryWriter('./tensorboard/baseline/meantime')
+    # writer = SummaryWriter('./tensorboard/baseline/uw')
 
     epoch = 500
     train_batch_size = 32
@@ -149,14 +149,14 @@ if __name__ == '__main__':
     test_batch_size = 64
 
     print("Prepare data...")
-    train_dataset = DataLoaderBert("./unified/meantime/train.conll", "./unified/meantime/dev.conll",
-                                   "./unified/meantime/test.conll", 'train')
+    train_dataset = DataLoaderBert("./unified/uw/train.conll", "./unified/uw/dev.conll",
+                                   "./unified/uw/test.conll", 'train')
     '''
-    dev_dataset = DataLoaderBert("./unified/meantime/train.conll", "./unified/meantime/dev.conll",
-                    "./unified/meantime/test.conll", 'dev')
+    dev_dataset = DataLoaderBert("./unified/uw/train.conll", "./unified/uw/dev.conll",
+                    "./unified/uw/test.conll", 'dev')
     '''
-    test_dataset = DataLoaderBert("./unified/meantime/train.conll", "./unified/meantime/dev.conll",
-                                  "./unified/meantime/test.conll", 'test')
+    test_dataset = DataLoaderBert("./unified/uw/train.conll", "./unified/uw/dev.conll",
+                                  "./unified/uw/test.conll", 'test')
 
     train_iter = DataLoader(dataset=train_dataset,
                             batch_size=train_batch_size,
@@ -171,8 +171,8 @@ if __name__ == '__main__':
                            batch_size=test_batch_size,
                            shuffle=False, drop_last=False)
 
-    filename = "./record/baseline_meantime.txt"
-    model_path = "./checkpoint/baseline_meantime.pt"
+    filename = "./record/baseline_uw.txt"
+    model_path = "./checkpoint/baseline_uw.pt"
     model = GraphBaseline()
     model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
