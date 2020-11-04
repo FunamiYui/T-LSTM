@@ -17,14 +17,17 @@ class BaselineBert(nn.Module):
         self.outlinear2 = nn.Linear(linear_hidden_size, out_size)
         self.dropout_out= nn.Dropout(dropout)
 
-    def forward(self, x):
+    def forward(self, x, trigger_index, mask=None):
         # x: [batch, seq_len, input_size]
         batch, seq_len, _ = x.shape
         x = self.bert2emb(x).transpose(0, 1)  # [seq_len, batch, input_size]
         # pack_padded_sequence?
-        _, (h, _) = self.bilstm(x)
-        h = h.view(self.num_layers, 2, batch, self.lstm_hidden_size)[-1]
-        x = torch.cat((h[0], h[1]), dim=-1)  # [batch, 2 * lstm_hidden_size]
+        out, (_, _) = self.bilstm(x)
+        out = out.transpose(0, 1)  # [batch, seq_len, 2 * lstm_hidden_size]
+
+        diag_matrix = torch.diag(torch.ones(seq_len)).cuda()
+        trigger_index = diag_matrix[trigger_index].bool().unsqueeze(-1).expand(-1, -1, out.shape[-1])
+        x = out.masked_select(trigger_index).view(batch, -1)  # [batch, 2 * lstm_hidden_size]
 
         x = self.outlinear1(x)
         x = F.relu(x)

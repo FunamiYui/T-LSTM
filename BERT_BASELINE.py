@@ -36,7 +36,7 @@ def trainer_train(epochs):
 
             optimizer.zero_grad()
 
-            out = model(sentence_emb)
+            out = model(sentence_emb, trigger_index, mask)
 
             loss = F.smooth_l1_loss(out, eep)
             loss.backward()
@@ -103,7 +103,7 @@ def trainer_test(epochs=1, wr=False):
             eep = eep.to(device)  # [batch]
             trigger_index = trigger_index.to(device)  # [batch]
 
-            out = model(sentence_emb)
+            out = model(sentence_emb, trigger_index, mask)
 
             loss = F.smooth_l1_loss(out, eep)
             temp_loss += loss.item()

@@ -86,6 +86,6 @@ if __name__ == "__main__":
         print(adj_matrix.shape)
         print(eep.shape)
         print(trigger_index.shape)
-        out = model(sentence_emb)
+        out = model(sentence_emb, trigger_index, mask)
         # accu = F.l1_loss(out, eep)
         # print(accu)
