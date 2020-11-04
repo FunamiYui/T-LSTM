@@ -6,7 +6,7 @@ import torch
 from torchtext import data
 from torch.nn import init
 from torchtext.data import Example
-from datastruct import DataStruct
+from data_utils import DataStruct
 
 
 # meantime and uw torchtext glove

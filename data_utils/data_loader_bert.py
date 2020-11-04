@@ -1,14 +1,11 @@
-import sys
-sys.path.append('..')
-
 from torch.utils.data import Dataset, DataLoader
 import torch
 import torch.nn.functional as F
 from tqdm import trange
 import numpy as np
-from load_data import LoadData
+from data_utils import LoadData
 from transformers import BertTokenizer, BertModel
-# from Model import BaselineBert
+from Model import BaselineBert
 
 
 class DataLoaderBert(Dataset):
@@ -82,15 +79,13 @@ if __name__ == "__main__":
                             batch_size=32,
                             shuffle=False)
 
-    # model = BaselineBert()
+    model = BaselineBert()
     for sentence_emb, mask, adj_matrix, eep, trigger_index, trigger in train_iter:
         print(sentence_emb.shape)
         print(mask.shape)
         print(adj_matrix.shape)
         print(eep.shape)
         print(trigger_index.shape)
-        print(trigger.shape)
-        # assert trigger_emb.shape[1] == 768, "BERT hidden dim wrong"
-        # out = model(trigger_emb)
+        out = model(sentence_emb)
         # accu = F.l1_loss(out, eep)
         # print(accu)
