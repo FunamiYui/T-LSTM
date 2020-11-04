@@ -168,8 +168,8 @@ if __name__ == '__main__':
                            batch_size=test_batch_size,
                            shuffle=False)
 
-    filename = "./record/baseline_meantime2.txt"
-    model_path = "./checkpoint/baseline_meantime2.pt"
+    filename = "./record/baseline_meantime.txt"
+    model_path = "./checkpoint/baseline_meantime.pt"
     model = BaselineBert()
     model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)

@@ -10,7 +10,7 @@ class BaselineBert(nn.Module):
         self.lstm_hidden_size = 300
         self.num_layers = 2
         self.bert2emb = nn.Linear(input_size, self.lstm_hidden_size)
-        self.bilstm = nn.LSTM(self.lstm_hidden_size, self.lstm_hidden_size, self.num_layers, bidirectional=True)  #
+        self.bilstm = nn.LSTM(input_size, self.lstm_hidden_size, self.num_layers, bidirectional=True)  #
         # batch_first=False
 
         self.outlinear1 = nn.Linear(2 * self.lstm_hidden_size, linear_hidden_size)
@@ -19,7 +19,7 @@ class BaselineBert(nn.Module):
 
     def forward(self, x, trigger_index, mask):
         # x: [batch, seq_len, input_size]
-        x = self.bert2emb(x).transpose(0, 1)  # [seq_len, batch, input_size]
+        x = x.transpose(0, 1)  # [seq_len, batch, input_size]
 
         seq_lens = torch.sum(mask, dim=-1, dtype=torch.long)
         sorted_seq_lens, indices = torch.sort(seq_lens, descending=True)
