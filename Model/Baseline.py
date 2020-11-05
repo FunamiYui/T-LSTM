@@ -7,21 +7,10 @@ from Attention import MultiHeadedAttention
 
 class GraphBaseline(nn.Module):
     def __init__(self, in_size=768, bi_hidden_size=300, bi_out_size=1024, gc_size=300, at_size=600,
-                 linear_hidden_size=300, out_size=1, head=1, num_layers=2, dropout=0.1,
-                 bi=True):
+                 linear_hidden_size=300, out_size=1, head=1, dropout=0.1):
         super(GraphBaseline, self).__init__()
-        self.in_size = in_size
-        self.bi_hidden_size = bi_hidden_size
-        self.bi_out_size = bi_out_size
-        self.at_size = at_size
-        self.linear_hidden_size = linear_hidden_size
-        self.out_size = out_size
-        self.num_layers = num_layers
-        self.dropout=dropout
-
         # self.embedding = nn.Embedding(len, in_size, padding_idx=1)
-        self.context_embedding = EncodeLayer(in_size=in_size, hidden_size=bi_hidden_size,
-                                             num_layers=num_layers, bi=bi)
+        self.context_embedding = EncodeLayer(in_size=in_size, hidden_size=bi_hidden_size)
         self.c2a = nn.Linear(bi_hidden_size * 2, bi_out_size)
 
         self.A_matrix = SentenceMatrixLayer(in_size=bi_out_size)
@@ -66,4 +55,5 @@ class GraphBaseline(nn.Module):
         x = F.relu(x)
         x= self.dropout_out(x)
         x = self.outlinear2(x)
+
         return x.squeeze()
