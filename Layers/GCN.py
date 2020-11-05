@@ -6,6 +6,8 @@ from Layers import GraphConvolution
 
 class GCN(nn.Module):
     def __init__(self, in_size, hidden_size, out_size, dropout):
+        # 2-layer GCN
+
         super(GCN, self).__init__()
 
         self.gc1 = GraphConvolution(in_size, hidden_size)

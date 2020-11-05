@@ -13,7 +13,7 @@ class SentenceMatrixLayer(nn.Module):
         self.in_size = in_size
         self.out_size = out_size
         self.p_Asem = p_Asem
-        self.linear = nn.Linear(in_size * 2, out_size, bias=False)
+        self.linear = nn.Linear(in_size * 2, out_size)
 
     def forward(self, x, adj):
         # x: [batch, seq_len, embed_dim]
@@ -29,7 +29,7 @@ class SentenceMatrixLayer(nn.Module):
         xj = x.unsqueeze(1)  # [batch, 1, seq_len, embed_dim]
         xj = xj.expand(-1, xj.shape[2], -1, -1)
 
-        xij = torch.sigmoid(self.linear(torch.cat((xi, xj), -1))).squeeze(-1)  # [batch, seq_len, seq_len]
+        xij = torch.sigmoid(self.linear(torch.cat((xi, xj), dim=-1))).squeeze(-1)  # [batch, seq_len, seq_len]
         A_esm = self.p_Asem * xij + (1 - self.p_Asem) * adj
         return A_esm  # [batch, seq_len, seq_len]
 

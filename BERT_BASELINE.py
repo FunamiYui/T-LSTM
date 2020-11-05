@@ -36,7 +36,7 @@ def trainer_train(epochs):
 
             optimizer.zero_grad()
 
-            out = model(sentence_emb, trigger_index, mask)
+            out = model(sentence_emb, adj_matrix, trigger_index, mask)
 
             loss = F.smooth_l1_loss(out, eep)
             loss.backward()
@@ -103,7 +103,7 @@ def trainer_test(epochs=1, wr=False):
             eep = eep.to(device)  # [batch]
             trigger_index = trigger_index.to(device)  # [batch]
 
-            out = model(sentence_emb, trigger_index, mask)
+            out = model(sentence_emb, adj_matrix, trigger_index, mask)
 
             loss = F.smooth_l1_loss(out, eep)
             temp_loss += loss.item()
@@ -170,7 +170,7 @@ if __name__ == '__main__':
 
     filename = "./record/baseline_meantime.txt"
     model_path = "./checkpoint/baseline_meantime.pt"
-    model = BaselineBert()
+    model = GraphBaseline()
     model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
 
