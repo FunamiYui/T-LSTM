@@ -56,10 +56,10 @@ class GraphBaseline(nn.Module):
         x = self.pre(trigger_index_x, x, x, mask)
         '''
 
-        batch, seq_len, _ = x.shape
+        batch, seq_len, embed_dim = x.shape
 
         diag_matrix = torch.diag(torch.ones(seq_len)).cuda()
-        trigger_index = diag_matrix[trigger_index].bool().unsqueeze(-1).expand(-1, -1, x.shape[-1])
+        trigger_index = diag_matrix[trigger_index].bool().unsqueeze(-1).expand(-1, -1, embed_dim)
         x = x.masked_select(trigger_index).view(batch, -1)  # [batch, at_size]
 
         x = self.outlinear1(x)

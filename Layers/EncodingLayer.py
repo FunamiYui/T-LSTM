@@ -16,6 +16,7 @@ class EncodeLayer(nn.Module):
     def forward(self, x, mask):
         # x: [batch, seq_len, bert_dim]
         # mask: [batch, seq_len]
+        seq_len = x.shape[1]
         x = x.transpose(0, 1)  # [seq_len, batch, input_size]
 
         seq_lens = torch.sum(mask, dim=-1, dtype=torch.long)
@@ -30,6 +31,9 @@ class EncodeLayer(nn.Module):
         out = out[:, desorted_indices]
 
         out = out.transpose(0, 1)  # [batch, seq_len, 2 * lstm_hidden_size]
-        return out
+        batch, new_seq_len, output_size = out.shape
+        if new_seq_len < seq_len:
+            out = torch.cat((out, torch.zeros([batch, seq_len - new_seq_len, output_size]).cuda()), dim=1)
+        return out  # [batch, seq_len, 2 * lstm_hidden_size]
 
 
