@@ -16,9 +16,9 @@ class GraphBaseline(nn.Module):
         # self.embedding = nn.Embedding(len, in_size, padding_idx=1)
         self.context_embedding = EncodeLayer(in_size=in_size, hidden_size=bi_hidden_size)
 
-        self.c2a = nn.Linear(bi_hidden_size * 2, bi_out_size)
-        self.A_matrix = SentenceMatrixLayer(in_size=bi_out_size)
-        self.gcn = GCN(bi_hidden_size * 2, gc_size, at_size, dropout)
+        self.c2a = nn.Linear(in_size, bi_out_size)
+        self.A_matrix = SentenceMatrixLayer(in_size=bi_out_size, p_Asem=1)
+        self.gcn = GCN(in_size, gc_size, at_size, dropout)
         # self.gcn2 = GCN(gc_size, gc_size, at_size, dropout)
 
         self.pre = MultiHeadedAttention(head, at_size, at_size, dropout)
@@ -35,15 +35,13 @@ class GraphBaseline(nn.Module):
         x = self.bert(x, attention_mask=mask)[0]
         cls, x, _ = x.split([1, x.shape[1] - 2, 1], dim=1)  # [batch, 1, input_size], [batch, seq_len, input_size]
 
-        x = self.context_embedding(x, mask)  # [batch, seq_len, bi_hidden_size * 2]
+        # x = self.context_embedding(x, mask)  # [batch, seq_len, bi_hidden_size * 2]
 
-        '''
         h = torch.tanh(self.c2a(x))  # [batch, seq_len, bi_out_size]
-
-        a = self.A_matrix(h, adj)  # [batch, seq_len, seq_len]
-
+        a = self.A_matrix(h, adj, mask)  # [batch, seq_len, seq_len]
         x = self.gcn(x, a)  # [batch, seq_len, at_size]
 
+        '''
         one_hot = F.one_hot(torch.arange(0, trigger_index.max() + 1), x.shape[1]).to(trigger_index.device)
         trigger_index = one_hot[trigger_index].unsqueeze(-1)  # [batch, seq_len, 1]
         trigger_index = trigger_index.expand(-1, -1, x.shape[-1]).bool()  # [batch, seq_len, at_size]
