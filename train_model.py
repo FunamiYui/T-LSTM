@@ -14,6 +14,7 @@ from Model import BaselineBert, GraphBaseline
 
 
 def trainer_train(epochs):
+    f = open(args.inter_path, 'w')
     best_r = 0.0
     for epoch in range(epochs):
         model.train()
@@ -40,7 +41,7 @@ def trainer_train(epochs):
 
         print('[epoch %d, %d] loss: %f' % (epoch, count, temp_loss / count))
 
-        _, test_r, _ = trainer_test()
+        test_loss, test_r, test_mae = trainer_test()
         if test_r[0] > best_r:
             best_r = test_r[0]
             torch.save({
@@ -49,6 +50,13 @@ def trainer_train(epochs):
                 'optimizer_state_dict': optimizer.state_dict(),
                 'correlation': test_r[0],
             }, args.model_path)
+        f.write("epoch: " + str(epoch) + "\n")
+        f.write("test_loss: " + str(test_loss) + "\n")
+        f.write("test_r: " + str(test_r[0]) + "\n")
+        f.write("test_mae: " + str(test_mae) + "\n")
+        f.write("\n")
+
+    f.close()
 
 
 

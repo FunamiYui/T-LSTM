@@ -13,14 +13,17 @@ def parse_args():
                         default='./unified/meantime/test.conll',
                         help='path to the testing file')
 
-    parser.add_argument('--n_epochs', type=int, default=500, help='number of epochs to train')
+    parser.add_argument('--n_epochs', type=int, default=50, help='number of epochs to train')
     parser.add_argument('--train_batch_size', type=int, default=32, help='size of the training batches')
     parser.add_argument('--dev_batch_size', type=int, default=64, help='size of the development batches')
     parser.add_argument('--test_batch_size', type=int, default=64, help='size of the testing batches')
 
     parser.add_argument('--output_path', type=str,
-                        default='./record/baseline_meantime.txt',
+                        default='./record/output_meantime.txt',
                         help='path to the output file')
+    parser.add_argument('--inter_path', type=str,
+                        default='./record/inter_meantime.txt',
+                        help='path to the intermediate file')
     parser.add_argument('--model_path', type=str,
                         default='./checkpoint/baseline_meantime.pt',
                         help='path to the model')
