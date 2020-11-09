@@ -1,11 +1,10 @@
-from torch.utils.data import Dataset, DataLoader
 import torch
-import torch.nn.functional as F
-from tqdm import trange
-import numpy as np
+from torch.utils.data import Dataset, DataLoader
+from transformers import BertTokenizer
+from config import args
 from data_utils import LoadData
-from transformers import BertTokenizer, BertModel
 from Model import BaselineBert
+from tqdm import trange
 
 
 class DataLoaderBert(Dataset):
@@ -20,38 +19,28 @@ class DataLoaderBert(Dataset):
     """
 
     def __init__(self, train_path, dev_path, test_path, dataset):
+        super(DataLoaderBert, self).__init__()
+
         loaddata = LoadData(train_path, dev_path, test_path)
         a = loaddata.conllu_counter[dataset]
         counter = loaddata.counter_process(a)
 
-        tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-        model = BertModel.from_pretrained("bert-base-uncased")
-        model.cuda()
+        tokenizer = BertTokenizer.from_pretrained(args.bert_model)
 
-        model.eval()
-
-        max_len = 0
+        max_length = 0
         for i in range(len(counter)):
-            if len(counter[i].sentence) > max_len:
-                max_len = len(counter[i].sentence)
-        print("max_len", max_len)
+            if len(counter[i].sentence) > max_length:
+                max_length = len(counter[i].sentence)
+        print("max_length", max_length)
+        max_length += 2  # [CLS], [SEP]
 
         for i in trange(len(counter)):
             assert len(counter[i].trigger) == 1, "not one trigger per sentence"
-            ids = torch.tensor(tokenizer.encode(counter[i].sentence)).unsqueeze(0).cuda()  # [batch=1, seq_len]
-            
-            with torch.no_grad():
-                h = model(ids)[0][:, 1:-1, :].squeeze(0).cpu()  # [seq_len, bert_dim]
-                # counter[i].trigger_emb = h[counter[i].trigger_index[0]]  # [bert_dim]
-                seq_len, bert_dim = h.shape
-                assert seq_len == len(counter[i].sentence), "after emb"
-                counter[i].sentence_emb = torch.zeros([max_len, bert_dim])
-                counter[i].sentence_emb[:seq_len] = h
-
-                counter[i].mask = torch.zeros(max_len)
-                counter[i].mask[:seq_len] = torch.ones(seq_len)
-
-                counter[i].adj_matrix = counter[i].trans_data(max_len)
+            counter[i].sentence_emb = torch.tensor(tokenizer.encode(counter[i].sentence, padding='max_length',
+                                                                    max_length=max_length))  # [seq_len]
+            counter[i].mask = torch.zeros(max_length)
+            counter[i].mask[:len(counter[i].sentence)+2] = 1
+            counter[i].adj_matrix = counter[i].trans_data(max_length - 2)
             counter[i].index = i
         self.data = counter
         self.len = len(self.data)

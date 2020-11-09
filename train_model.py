@@ -8,16 +8,9 @@ import torch
 import torch.optim as optim
 import torch.nn.functional as F
 
+from config import args
 from data_utils import DataLoaderBert
 from Model import BaselineBert, GraphBaseline
-
-
-def tokenizer(text):
-    return [tok for tok in text]
-
-
-def get_pad_mask(seq, pad_idx):
-    return (seq != pad_idx).unsqueeze(-2)
 
 
 def trainer_train(epochs):
@@ -28,7 +21,7 @@ def trainer_train(epochs):
         count = 0
 
         for sentence_emb, mask, adj_matrix, eep, trigger_index, trigger in train_iter:
-            sentence_emb = sentence_emb.to(device)  # [batch, seq_len, bert_dim]
+            sentence_emb = sentence_emb.to(device)  # [batch, seq_len]
             mask = mask.to(device)  # [batch, seq_len]
             adj_matrix = adj_matrix.to(device).to_dense()  # [batch, seq_len, seq_len]
             eep = eep.to(device)  # [batch]
@@ -55,7 +48,7 @@ def trainer_train(epochs):
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'correlation': test_r[0],
-            }, model_path)
+            }, args.model_path)
 
 
 
@@ -86,7 +79,7 @@ def trainer_dev(epoch):
 
 
 def trainer_test(epochs=1, wr=False):
-    f = open(filename, 'w')
+    f = open(args.output_path, 'w')
 
     model.eval()
     loss_list = 0.0
@@ -132,56 +125,48 @@ def trainer_test(epochs=1, wr=False):
 
 
 if __name__ == '__main__':
-    torch.cuda.empty_cache()
     os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
-    # os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    torch.cuda.empty_cache()
     torch.cuda.manual_seed_all(0)
-
     device = torch.device("cuda")
     # writer = SummaryWriter('./tensorboard/baseline/meantime')
 
-    epoch = 500
-    train_batch_size = 32
-    dev_batch_size = 128
-    test_batch_size = 64
-
     print("Prepare data...")
-    train_dataset = DataLoaderBert("./unified/meantime/train.conll", "./unified/meantime/dev.conll",
-                                   "./unified/meantime/test.conll", 'train')
+    train_dataset = DataLoaderBert(args.train_data_path, args.dev_data_path,
+                                   args.test_data_path, 'train')
     '''
-    dev_dataset = DataLoaderBert("./unified/meantime/train.conll", "./unified/meantime/dev.conll",
-                    "./unified/meantime/test.conll", 'dev')
+    dev_dataset = DataLoaderBert(args.train_data_path, args.dev_data_path,
+                                   args.test_data_path, 'dev')
     '''
-    test_dataset = DataLoaderBert("./unified/meantime/train.conll", "./unified/meantime/dev.conll",
-                                  "./unified/meantime/test.conll", 'test')
+    test_dataset = DataLoaderBert(args.train_data_path, args.dev_data_path,
+                                   args.test_data_path, 'test')
 
     train_iter = DataLoader(dataset=train_dataset,
-                            batch_size=train_batch_size,
+                            batch_size=args.train_batch_size,
                             shuffle=True)
     '''
     dev_iter = DataLoader(dataset=dev_dataset,
-                          batch_size=dev_batch_size,
-                          shuffle=True, drop_last=True)
+                          batch_size=args.dev_batch_size,
+                          shuffle=False, drop_last=True)
     '''
 
     test_iter = DataLoader(dataset=test_dataset,
-                           batch_size=test_batch_size,
+                           batch_size=args.test_batch_size,
                            shuffle=False)
 
-    filename = "./record/baseline_meantime.txt"
-    model_path = "./checkpoint/baseline_meantime.pt"
     model = GraphBaseline()
     model.to(device)
-    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
+    optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
     print("Start training...")
-    trainer_train(epoch)
+    trainer_train(args.n_epochs)
 
     print("Start testing...")
     test_loss, test_r, test_mae = trainer_test()
     print("test_loss:", test_loss, "test_r:", test_r, "test_mae:", test_mae)
 
-    checkpoint = torch.load(model_path)
+    checkpoint = torch.load(args.model_path)
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     print(checkpoint['epoch'], checkpoint['correlation'])
