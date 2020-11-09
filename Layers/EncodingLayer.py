@@ -7,15 +7,15 @@ import torch.nn.functional as F
 class EncodeLayer(nn.Module):
     def __init__(self, in_size, hidden_size, num_layers=2, bi=True):
         super(EncodeLayer, self).__init__()
-        self.bilstm = nn.LSTM(in_size, hidden_size, num_layers=num_layers, bidirectional=bi)
+        self.bilstm = nn.LSTM(in_size, hidden_size, num_layers=num_layers, bidirectional=bi)  # batch_first=False
 
     def forward(self, x, mask):
         # x: [batch, seq_len, bert_dim]
-        # mask: [batch, seq_len]
+        # mask: [batch, seq_len + 2]
         seq_len = x.shape[1]
         x = x.transpose(0, 1)  # [seq_len, batch, input_size]
 
-        seq_lens = torch.sum(mask, dim=-1, dtype=torch.long)
+        seq_lens = torch.sum(mask, dim=-1, dtype=torch.long) - 2
         sorted_seq_lens, indices = torch.sort(seq_lens, descending=True)
         _, desorted_indices = torch.sort(indices)
         x = x[:, indices]

@@ -126,7 +126,7 @@ def trainer_test(epochs=1, wr=False):
 
 if __name__ == '__main__':
     os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     torch.cuda.empty_cache()
     torch.cuda.manual_seed_all(0)
     device = torch.device("cuda")

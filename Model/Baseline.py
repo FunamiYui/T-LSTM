@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 from transformers import BertModel
-from Layers import GraphConvolution, SentenceMatrixLayer, EncodeLayer, feedforwardLayer, GCN
+from Layers import EncodeLayer, SentenceMatrixLayer, GCN
 from Attention import MultiHeadedAttention
 
 
@@ -15,15 +15,15 @@ class GraphBaseline(nn.Module):
 
         # self.embedding = nn.Embedding(len, in_size, padding_idx=1)
         self.context_embedding = EncodeLayer(in_size=in_size, hidden_size=bi_hidden_size)
-        self.c2a = nn.Linear(bi_hidden_size * 2, bi_out_size)
 
+        self.c2a = nn.Linear(bi_hidden_size * 2, bi_out_size)
         self.A_matrix = SentenceMatrixLayer(in_size=bi_out_size)
         self.gcn = GCN(bi_hidden_size * 2, gc_size, at_size, dropout)
         # self.gcn2 = GCN(gc_size, gc_size, at_size, dropout)
 
         self.pre = MultiHeadedAttention(head, at_size, at_size, dropout)
 
-        self.outlinear1 = nn.Linear(in_size, linear_hidden_size)
+        self.outlinear1 = nn.Linear(bi_hidden_size * 2, linear_hidden_size)
         self.outlinear2 = nn.Linear(linear_hidden_size, out_size)
         self.dropout_out = nn.Dropout(dropout)
 
@@ -35,8 +35,9 @@ class GraphBaseline(nn.Module):
         x = self.bert(x, attention_mask=mask)[0]
         cls, x, _ = x.split([1, x.shape[1] - 2, 1], dim=1)  # [batch, 1, input_size], [batch, seq_len, input_size]
 
-        '''
         x = self.context_embedding(x, mask)  # [batch, seq_len, bi_hidden_size * 2]
+
+        '''
         h = torch.tanh(self.c2a(x))  # [batch, seq_len, bi_out_size]
 
         a = self.A_matrix(h, adj)  # [batch, seq_len, seq_len]
