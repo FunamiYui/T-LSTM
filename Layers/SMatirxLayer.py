@@ -34,11 +34,11 @@ class SentenceMatrixLayer(nn.Module):
 
         mask = mask[:, 2:]  # [batch, seq_len]
         assert mask.shape[1] == seq_len, "seq_len inconsistent"
-        mask_i = mask.unsqueeze(1).expand(-1, seq_len, -1).bool()  # [batch, 1, seq_len]
-        mask_j = mask.unsqueeze(2).expand(-1, -1, seq_len).bool()  # [batch, seq_len, 1]
-        A_mask = torch.bitwise_and(mask_i, mask_j)
+        mask_i = mask.unsqueeze(1).expand(-1, seq_len, -1) # [batch, 1, seq_len]
+        mask_j = mask.unsqueeze(2).expand(-1, -1, seq_len)  # [batch, seq_len, 1]
+        A_mask = mask_i * mask_j
 
-        return A_esm.masked_fill(A_mask, 1e-9)  # [batch, seq_len, seq_len]
+        return A_esm.masked_fill(A_mask==0, 1e-9)  # [batch, seq_len, seq_len]
 
 ##test
 # edge_index = torch.tensor([[0, 1, 1, 2],

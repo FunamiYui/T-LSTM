@@ -28,6 +28,15 @@ class DataStruct:
         mx = r_mat_inv.dot(mx)
         return mx
 
+    def sparse_mx_to_torch_sparse_tensor(self, sparse_mx):
+        """Convert a scipy sparse matrix to a torch sparse tensor."""
+        sparse_mx = sparse_mx.tocoo().astype(np.float32)
+        indices = torch.from_numpy(
+            np.vstack((sparse_mx.row, sparse_mx.col)).astype(np.int64))
+        values = torch.from_numpy(sparse_mx.data)
+        shape = torch.Size(sparse_mx.shape)
+        return torch.sparse.FloatTensor(indices, values, shape)
+
     def trans_data(self, adj_length):
         sp_adj = torch.tensor(self.adj).to_sparse()
         adj = sp.coo_matrix(
@@ -40,15 +49,6 @@ class DataStruct:
         adj = self.normalize(adj + sp.eye(adj.shape[0]))
         adj = self.sparse_mx_to_torch_sparse_tensor(adj)
         return adj
-
-    def sparse_mx_to_torch_sparse_tensor(self,sparse_mx):
-        """Convert a scipy sparse matrix to a torch sparse tensor."""
-        sparse_mx = sparse_mx.tocoo().astype(np.float32)
-        indices = torch.from_numpy(
-            np.vstack((sparse_mx.row, sparse_mx.col)).astype(np.int64))
-        values = torch.from_numpy(sparse_mx.data)
-        shape = torch.Size(sparse_mx.shape)
-        return torch.sparse_coo_tensor(indices, values, shape)
 
     def get_eep(self):
         return self.eep
