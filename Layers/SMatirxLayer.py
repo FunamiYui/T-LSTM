@@ -18,7 +18,7 @@ class SentenceMatrixLayer(nn.Module):
     def forward(self, x, adj, mask):
         # x: [batch, seq_len, embed_dim]
         # adj: [batch, seq_len, seq_len], dense
-        # mask: [batch, seq_len + 2]
+        # mask: [batch, seq_len]
 
         # adj is dense batch*node*node*(2*emb)
         # 2*emb for cat xi,xj
@@ -32,13 +32,12 @@ class SentenceMatrixLayer(nn.Module):
         xij = torch.sigmoid(self.linear(torch.cat((xi, xj), dim=-1))).squeeze(-1)  # [batch, seq_len, seq_len]
         A_esm = self.p_Asem * xij + (1 - self.p_Asem) * adj
 
-        mask = mask[:, 2:]  # [batch, seq_len]
         assert mask.shape[1] == seq_len, "seq_len inconsistent"
-        mask_i = mask.unsqueeze(1).expand(-1, seq_len, -1) # [batch, 1, seq_len]
+        mask_i = mask.unsqueeze(1).expand(-1, seq_len, -1)  # [batch, 1, seq_len]
         mask_j = mask.unsqueeze(2).expand(-1, -1, seq_len)  # [batch, seq_len, 1]
         A_mask = mask_i * mask_j
 
-        return A_esm.masked_fill(A_mask==0, 1e-9)  # [batch, seq_len, seq_len]
+        return A_esm.masked_fill(A_mask == 0, 1e-9)  # [batch, seq_len, seq_len]
 
 ##test
 # edge_index = torch.tensor([[0, 1, 1, 2],

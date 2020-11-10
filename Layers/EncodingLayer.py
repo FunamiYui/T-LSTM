@@ -11,11 +11,11 @@ class EncodeLayer(nn.Module):
 
     def forward(self, x, mask):
         # x: [batch, seq_len, bert_dim]
-        # mask: [batch, seq_len + 2]
+        # mask: [batch, seq_len]
         seq_len = x.shape[1]
         x = x.transpose(0, 1)  # [seq_len, batch, input_size]
 
-        seq_lens = torch.sum(mask, dim=-1, dtype=torch.long) - 2
+        seq_lens = torch.sum(mask, dim=-1, dtype=torch.long)
         sorted_seq_lens, indices = torch.sort(seq_lens, descending=True)
         _, desorted_indices = torch.sort(indices)
         x = x[:, indices]

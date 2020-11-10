@@ -16,14 +16,14 @@ class GraphBaseline(nn.Module):
         # self.embedding = nn.Embedding(len, in_size, padding_idx=1)
         self.context_embedding = EncodeLayer(in_size=in_size, hidden_size=bi_hidden_size)
 
-        self.c2a = nn.Linear(in_size, bi_out_size)
-        self.A_matrix = SentenceMatrixLayer(in_size=bi_out_size, p_Asem=1)
-        self.gcn = GCN(in_size, gc_size, at_size, dropout)
+        self.c2a = nn.Linear(bi_hidden_size * 2, bi_out_size)
+        self.A_matrix = SentenceMatrixLayer(in_size=bi_out_size, p_Asem=args.p_Asem)
+        self.gcn = GCN(bi_hidden_size * 2, gc_size, at_size, dropout=args.gcn_dropout)
         # self.gcn2 = GCN(gc_size, gc_size, at_size, dropout)
 
         self.pre = MultiHeadedAttention(head, at_size, at_size, dropout)
 
-        self.outlinear1 = nn.Linear(bi_hidden_size * 2, linear_hidden_size)
+        self.outlinear1 = nn.Linear(at_size, linear_hidden_size)
         self.outlinear2 = nn.Linear(linear_hidden_size, out_size)
         self.dropout_out = nn.Dropout(dropout)
 
@@ -34,27 +34,21 @@ class GraphBaseline(nn.Module):
         # mask: [batch, seq_len]
         x = self.bert(x, attention_mask=mask)[0]
         cls, x, _ = x.split([1, x.shape[1] - 2, 1], dim=1)  # [batch, 1, input_size], [batch, seq_len, input_size]
+        mask = mask[:, 2:]  # [batch, seq_len]
 
-        # x = self.context_embedding(x, mask)  # [batch, seq_len, bi_hidden_size * 2]
+        x = self.context_embedding(x, mask)  # [batch, seq_len, bi_hidden_size * 2]
 
         h = torch.tanh(self.c2a(x))  # [batch, seq_len, bi_out_size]
         a = self.A_matrix(h, adj, mask)  # [batch, seq_len, seq_len]
         x = self.gcn(x, a)  # [batch, seq_len, at_size]
-
-        '''
-        one_hot = F.one_hot(torch.arange(0, trigger_index.max() + 1), x.shape[1]).to(trigger_index.device)
-        trigger_index = one_hot[trigger_index].unsqueeze(-1)  # [batch, seq_len, 1]
-        trigger_index = trigger_index.expand(-1, -1, x.shape[-1]).bool()  # [batch, seq_len, at_size]
-        trigger_index_x = x.masked_select(trigger_index).view(x.shape[0], 1, x.shape[-1])  # [batch, 1, at_size], vector of trigger_index
-
-        x = self.pre(trigger_index_x, x, x, mask)
-        '''
 
         batch, seq_len, embed_dim = x.shape
 
         diag_matrix = torch.diag(torch.ones(seq_len)).cuda()
         trigger_index = diag_matrix[trigger_index].bool().unsqueeze(-1).expand(-1, -1, embed_dim)
         x = x.masked_select(trigger_index).view(batch, -1)  # [batch, at_size]
+
+        # x = self.pre(trigger, x, x, mask)
 
         x = self.outlinear1(x)
         x = F.relu(x)

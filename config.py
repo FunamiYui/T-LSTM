@@ -31,6 +31,11 @@ def parse_args():
     parser.add_argument('--lr', type=float, default=1e-5, help='learning rate')
     parser.add_argument('--weight_decay', type=float, default=5e-4, help='coefficient of weight decay')
 
+    parser.add_argument('--p_Asem', type=float, default=0.6,
+                        help='trade off parameter labmda between the semantic and syntactic structures')
+    parser.add_argument('--gcn_dropout', type=float, default=0.1,
+                        help='dropout of gcn')
+
     args = parser.parse_args()
     for arg in vars(args):
         print('{}={}'.format(arg.upper(), getattr(args, arg)))
