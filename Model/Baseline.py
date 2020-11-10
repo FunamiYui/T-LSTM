@@ -21,7 +21,7 @@ class GraphBaseline(nn.Module):
         self.gcn = GCN(bi_hidden_size * 2, gc_size, at_size, dropout=args.gcn_dropout)
         # self.gcn2 = GCN(gc_size, gc_size, at_size, dropout)
 
-        self.pre = MultiHeadedAttention(head, at_size, at_size, dropout)
+        self.pre = MultiHeadedAttention(head, at_size, at_size, dropout=args.attn_dropout)
 
         self.outlinear1 = nn.Linear(at_size, linear_hidden_size)
         self.outlinear2 = nn.Linear(linear_hidden_size, out_size)
@@ -46,9 +46,9 @@ class GraphBaseline(nn.Module):
 
         diag_matrix = torch.diag(torch.ones(seq_len)).cuda()
         trigger_index = diag_matrix[trigger_index].bool().unsqueeze(-1).expand(-1, -1, embed_dim)
-        x = x.masked_select(trigger_index).view(batch, -1)  # [batch, at_size]
+        trigger = x.masked_select(trigger_index).view(batch, 1, -1)  # [batch, 1, at_size]
 
-        # x = self.pre(trigger, x, x, mask)
+        x = self.pre(trigger, x, x, mask)
 
         x = self.outlinear1(x)
         x = F.relu(x)

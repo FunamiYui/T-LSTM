@@ -35,6 +35,8 @@ def parse_args():
                         help='trade off parameter labmda between the semantic and syntactic structures')
     parser.add_argument('--gcn_dropout', type=float, default=0.1,
                         help='dropout of gcn')
+    parser.add_argument('--attn_dropout', type=float, default=0.0,
+                        help='dropout of attention')
 
     args = parser.parse_args()
     for arg in vars(args):
